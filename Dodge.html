@@ -1,0 +1,310 @@
+
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Dodge Game</title>
+        <link href="https://fonts.googleapis.com/css?family=Antic+Slab" rel="stylesheet">
+    </head>
+
+    <body>
+
+        <b>Fast Tutorial</b>
+        <small><br>
+            (1) WASD to move. <br>
+            (2) Dodge RedBalls <br>
+            (3) Click on BlueBalls as fast as you can (click them faster -> get more points) <br>
+            (4) You can't go through BlueBalls (same as IRL eheh) <br>
+            (5) The higher the score, the harder it gets!<br>
+            (***) Suggested setup: Mouse, Pad sucks here</small>
+        <div id="score">0</div>
+        <div id="highest">0</div>
+        <canvas id="gameCanvas" width="450" height="450"></canvas>
+
+        <style>
+            body {
+                background: dimgray
+            }
+
+            #gameCanvas {
+                position: absolute;
+                top: 100px;
+                left: 450px;
+            }
+            #score {
+                position: absolute;
+                top: 10px;
+                left: 600px;
+                text-align: center;
+                font-size: 70px;
+                font-family: 'Antic Slab', serif;
+            }
+
+            #highest {
+                text-align: right;
+                font-size: 50px;
+                font-family: 'Antic Slab', serif;
+            }
+        </style>
+    </body>
+
+    <script>
+        const CANVAS_BORDER_COLOUR = 'black';
+        const CANVAS_BACKGROUND_COLOUR = "darkslategray";
+        const HERO_COLOUR = 'limegreen';
+        const PROJECTILE_COLOUR = 'red';
+        const CIRCLE_COLOUR = 'darkblue';
+        const RADIUS = 10;
+
+        let hero = [ {x: 225, y: 225} ]
+
+        let projectiles = [];
+        let circles = [];
+
+        let score;
+        let lvl;
+        let gameSpeed;
+        let gotHit;
+        let counter;
+        let restart = true;
+        let leftPressed = false, rightPressed = false, upPressed = false, downPressed = false;
+
+        const gameCanvas = document.getElementById("gameCanvas");
+        const ctx = gameCanvas.getContext("2d");
+
+        document.addEventListener("keydown", keyDownHandler, false);
+        document.addEventListener("keyup", keyUpHandler, false);
+        document.addEventListener("click", mouseClickHandler, false);
+
+        callMain(); 
+
+        function callMain() {
+            gotHit = false;
+            score = 0;
+            lvl = 0;
+            counter = 0;
+            gameSpeed = 1;
+            projectiles.splice(0, projectiles.length);
+            circles.splice(0, circles.length);
+            main();
+        }
+
+        function main() {
+            
+            if (gotHit) {
+                if(restart) {
+                    updateHighest();
+                    callMain();
+                }
+                return;
+            }
+
+            clearCanvas();
+            drawCircles();
+            createProjectile();
+            drawProjectiles();
+            moveHero();
+            drawHero();
+            checkHero();
+
+            requestAnimationFrame(main);
+        }
+
+        function clearCanvas() {
+            ctx.beginPath();
+            ctx.fillStyle = CANVAS_BACKGROUND_COLOUR;
+            ctx.strokeStyle = CANVAS_BORDER_COLOUR;
+            ctx.fillRect(0, 0, gameCanvas.width, gameCanvas.height);
+            ctx.strokeRect(0, 0, gameCanvas.width, gameCanvas.height);
+            ctx.closePath();
+        }
+
+        function drawHero() {
+            ctx.beginPath();
+            ctx.fillStyle = HERO_COLOUR;
+            ctx.fillRect(hero[0].x - 5, hero[0].y - 5, 10, 10);
+            ctx.strokeRect(hero[0].x - 5, hero[0].y - 5, 10, 10);
+            ctx.closePath();
+        }
+
+        function checkHero() {
+
+            if (!gotHit) {
+                if(score < 3000)
+                    score += 50;
+                else
+                    score += 3;
+                if(score / 300 > lvl) {
+                    lvl += 1;
+                    gameSpeed += 1;
+                }
+                document.getElementById('score').innerHTML = score;
+            }
+        }
+        
+        function randomTen(min, max) {
+            return Math.round((Math.random() * (max-min) + min) / 10) * 10;
+        }
+        
+        function createProjectile() {
+            if(projectiles.length < (gameSpeed / 5)) {      
+                let projectileX = randomTen(0, gameCanvas.width - 10);
+                let projectileY = randomTen(0, gameCanvas.height - 10);
+                if(projectileX < projectileY) {
+                    if(Math.floor(Math.random()*2) % 2 == 0)
+                        projectiles.push( {x: 0, y: projectileY, angle: Math.random()*180} )
+                    else
+                        projectiles.push( {x: gameCanvas.width, y: projectileY, angle: Math.random()*180+180} )
+                }
+                else {
+                    if(Math.floor(Math.random()*2) % 2 == 0)
+                        projectiles.push( {x: projectileX, y: 0, angle: Math.random()*180-90} )
+                    else
+                        projectiles.push( {x: projectileX, y: gameCanvas.height, angle: Math.random()*180+90} )
+                }
+            }
+        }
+
+        function drawProjectiles() {
+            projectiles.forEach(stuffProjectile);
+        }
+
+        function stuffProjectile(projectilePart) {      //both draw and move
+            let x = hero[0].x;
+            let y = hero[0].y;
+            
+            if(Math.sqrt((projectilePart.x-x)*(projectilePart.x-x) + (projectilePart.y-y)*(projectilePart.y-y)) < RADIUS)
+                gotHit = true;
+
+            projectilePart.x += ((RADIUS+gameSpeed)*Math.cos(projectilePart.angle))/10;
+            projectilePart.y += ((RADIUS+gameSpeed)*Math.sin(projectilePart.angle))/10;
+            if(projectilePart.x > gameCanvas.width || projectilePart.x < 0 || projectilePart.y > gameCanvas.height || projectilePart.y < 0)
+                projectiles.splice(projectiles.indexOf(projectilePart), 1);
+
+            else {
+                ctx.beginPath();
+                ctx.fillStyle = PROJECTILE_COLOUR;
+                ctx.arc(projectilePart.x, projectilePart.y, 10, 0, 2 * Math.PI);
+                ctx.fill();
+                ctx.stroke();
+                ctx.closePath();
+            }
+        }
+
+        function moveHero() {
+            if(touchingCircles())
+                return;
+            else {
+                if(leftPressed && hero[0].x > 9)
+                    hero[0].x = hero[0].x - 4;
+                else if(rightPressed && hero[0].x < gameCanvas.width - 12)
+                    hero[0].x = hero[0].x + 4;
+                if(upPressed && hero[0].y > 9)
+                    hero[0].y = hero[0].y - 4;
+                else if(downPressed && hero[0].y < gameCanvas.height - 12)
+                    hero[0].y = hero[0].y + 4;
+            }
+        }
+
+        function touchingCircles() {
+            let a = hero[0].x;
+            let b = hero[0].y;
+            for(var n = 0; n < circles.length; n++) {
+                let circ = circles[n];
+                if(Math.sqrt((circ.x-a)*(circ.x-a) + (circ.y-b)*(circ.y-b)) < circ.r+5) {
+                    if(a < circ.x)
+                        hero[0].x = hero[0].x - 1;
+                    else if (a > circ.x)
+                        hero[0].x = hero[0].x + 1;
+                    if(b < circ.y)
+                        hero[0].y = hero[0].y - 1;
+                    else if (b > circ.y)
+                        hero[0].y = hero[0].y + 1;
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        function createCircle() {
+            if(circles.length < 5 && counter > 59) {
+                counter = 0;
+                let tmpX = Math.random()*(gameCanvas.width-19);
+                let tmpY = Math.random()*(gameCanvas.height-19);
+                if(tmpX < 37) tmpX += 19;
+                if(tmpY < 37) tmpY += 19;
+                circles.push( {x: tmpX, y: tmpY, r: 3});
+            }
+            else
+                counter += 1 % 60;
+        }
+
+        function drawCircles(){
+            createCircle();
+            circles.forEach(drawCircle);
+        }
+
+        function drawCircle(circlePart) {
+            if(circlePart.r < 18) {
+                circlePart.r += 0.1;
+                ctx.fillStyle = CIRCLE_COLOUR;
+            }
+            else 
+                ctx.fillStyle = "royalblue";
+    
+            ctx.beginPath();
+            ctx.arc(circlePart.x, circlePart.y, circlePart.r, 0, Math.PI*2);
+            ctx.fill();
+            ctx.stroke();
+            ctx.closePath();
+        }
+
+
+        function keyDownHandler(e) {
+            if(e.keyCode == 65) 
+                leftPressed = true;
+            if(e.keyCode == 68) 
+                rightPressed = true;
+            if(e.keyCode == 87) 
+                upPressed = true;
+            if(e.keyCode == 83) 
+                downPressed = true;
+        }
+        
+        function keyUpHandler(e) {
+            if(e.keyCode == 65) 
+                leftPressed = false;
+            if(e.keyCode == 68) 
+                rightPressed = false;
+            if(e.keyCode == 87) 
+                upPressed = false;
+            if(e.keyCode == 83) 
+                downPressed = false;
+        }
+
+        function mouseClickHandler(e) {
+            hitTest(e.x - gameCanvas.offsetLeft, e.y - gameCanvas.offsetTop);
+        }
+
+        function hitTest(ex, ey) {
+            for(var n = 0; n < circles.length; n++) { 
+                let xc = circles[n].x;
+                let yc = circles[n].y;
+                if(Math.sqrt((xc-ex)*(xc-ex) + (yc-ey)*(yc-ey)) < circles[n].r) {
+                    counter = 0;
+                    score += Math.floor(10000/circles[n].r);
+                    circles.splice(n,1);
+                }
+            }
+        }
+
+        function stop() {
+            restart = false;
+        }
+
+        function updateHighest() {
+            let tmp = highest.innerHTML;
+            if(tmp < score)
+                highest.innerHTML = score; 
+        }
+    </script>
+</html>
