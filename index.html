@@ -2,7 +2,7 @@
 <!DOCTYPE html>
 <html>
     <head>
-        <title>Dodge Game</title>
+        <title>Dodge Game - GPurgatorio</title>
         <link href="https://fonts.googleapis.com/css?family=Antic+Slab" rel="stylesheet">
     </head>
 
@@ -48,6 +48,8 @@
     </body>
 
     <script>
+
+        // Created by Giulio Purgatorio, check my other VERY useful stuff here https://github.com/GPurgatorio
         const CANVAS_BORDER_COLOUR = 'black';
         const CANVAS_BACKGROUND_COLOUR = "darkslategray";
         const HERO_COLOUR = 'limegreen';
@@ -65,7 +67,6 @@
         let gameSpeed;
         let gotHit;
         let counter;
-        let restart = true;
         let leftPressed = false, rightPressed = false, upPressed = false, downPressed = false;
 
         const gameCanvas = document.getElementById("gameCanvas");
@@ -75,8 +76,11 @@
         document.addEventListener("keyup", keyUpHandler, false);
         document.addEventListener("click", mouseClickHandler, false);
 
+        // When the page loads, calls this
         callMain(); 
 
+        
+        // Which causes the Main function to be called with all the variables to default
         function callMain() {
             gotHit = false;
             score = 0;
@@ -88,14 +92,13 @@
             main();
         }
 
+
         function main() {
             
             if (gotHit) {
-                if(restart) {
-                    updateHighest();
-                    callMain();
-                }
-                return;
+                updateHighest();
+                callMain();             // resets the variables and restart
+                return;                 // (Should the Hero return to the starting position? Meh)
             }
 
             clearCanvas();
@@ -109,6 +112,8 @@
             requestAnimationFrame(main);
         }
 
+
+        // Clears the Canvas :^)
         function clearCanvas() {
             ctx.beginPath();
             ctx.fillStyle = CANVAS_BACKGROUND_COLOUR;
@@ -118,6 +123,8 @@
             ctx.closePath();
         }
 
+
+        // Draws the Hero :^)
         function drawHero() {
             ctx.beginPath();
             ctx.fillStyle = HERO_COLOUR;
@@ -126,60 +133,104 @@
             ctx.closePath();
         }
 
+
+        // Checks the gotHit boolean
         function checkHero() {
 
-            if (!gotHit) {
-                if(score < 3000)
-                    score += 50;
+            if (!gotHit) {                  // If a RedBall (projectiles) still hasn't hit the Hero
+                
+                if(score < 3000)            // Fast start (the game's really slow at the beginning)
+                    score += 25;
                 else
-                    score += 3;
+                    score += 3;             // Normal speed score
+                
                 if(score / 300 > lvl) {
                     lvl += 1;
                     gameSpeed += 1;
                 }
+
                 document.getElementById('score').innerHTML = score;
             }
         }
         
-        function randomTen(min, max) {
-            return Math.round((Math.random() * (max-min) + min) / 10) * 10;
-        }
         
+        // Pushes a new RedBall (a.k.a. Projectile), now forcing the calculation inside the create method #efficiency
         function createProjectile() {
-            if(projectiles.length < (gameSpeed / 5)) {      
-                let projectileX = randomTen(0, gameCanvas.width - 10);
-                let projectileY = randomTen(0, gameCanvas.height - 10);
+            
+            if(projectiles.length < (gameSpeed / 5)) {      // Number of RedBalls (projectiles) depends on the gameSpeed
+                
+                let projectileX = randomTen(0, gameCanvas.width);           
+                let projectileY = randomTen(0, gameCanvas.height);
+                let randomness = Math.floor(Math.random()*2) % 2;
+                let angle;
+                
+                // X, Y and angle changing to be "fair" (very close to) on where to start (top, left, right, down)
                 if(projectileX < projectileY) {
-                    if(Math.floor(Math.random()*2) % 2 == 0)
-                        projectiles.push( {x: 0, y: projectileY, angle: Math.random()*180} )
-                    else
-                        projectiles.push( {x: gameCanvas.width, y: projectileY, angle: Math.random()*180+180} )
+
+                    if(randomness == 0) {           // Spawns LEFT
+                        angle = Math.random()*180;
+                        projectiles.push( { x: 0, 
+                                            y: projectileY, 
+                                            dx: ((RADIUS+gameSpeed)*Math.cos(angle))/10, 
+                                            dy: ((RADIUS+gameSpeed)*Math.sin(angle))/10 
+                                        } )
+                    }
+                    else {                          // Spawns RIGHT
+                        angle = Math.random()*180+180;
+                        projectiles.push( { x: gameCanvas.width, 
+                                            y: projectileY, 
+                                            dx: ((RADIUS+gameSpeed)*Math.cos(angle))/10, 
+                                            dy: ((RADIUS+gameSpeed)*Math.sin(angle))/10 
+                                        } )
+                    }
                 }
-                else {
-                    if(Math.floor(Math.random()*2) % 2 == 0)
-                        projectiles.push( {x: projectileX, y: 0, angle: Math.random()*180-90} )
-                    else
-                        projectiles.push( {x: projectileX, y: gameCanvas.height, angle: Math.random()*180+90} )
+
+                else {          
+                    if(randomness == 0) {           // Spawns UP
+                        angle = Math.random()*180-90;
+                        projectiles.push( { x: projectileX, 
+                                            y: 0, 
+                                            dx: ((RADIUS+gameSpeed)*Math.cos(angle))/10, 
+                                            dy: ((RADIUS+gameSpeed)*Math.sin(angle))/10
+                                        } )
+                    }
+                    else {                          // Spawns DOWN
+                        angle = Math.random()*180+90;
+                        projectiles.push( { x: projectileX, 
+                                            y: gameCanvas.height, 
+                                            dx: ((RADIUS+gameSpeed)*Math.cos(angle))/10, 
+                                            dy: ((RADIUS+gameSpeed)*Math.sin(angle))/10 
+                                        } )
+                    }
                 }
             }
         }
 
+        // Draws RedBalls (projectiles)
         function drawProjectiles() {
             projectiles.forEach(stuffProjectile);
         }
 
-        function stuffProjectile(projectilePart) {      //both draw and move
+        
+        // Called by drawProjectile() on every RedBall (projectiles)
+        function stuffProjectile(projectilePart) {                  // Both draw and Move -> stuff :^)
+            
             let x = hero[0].x;
             let y = hero[0].y;
             
+            // This simple calculation means "Is the Hero touching this projectile?"
             if(Math.sqrt((projectilePart.x-x)*(projectilePart.x-x) + (projectilePart.y-y)*(projectilePart.y-y)) < RADIUS)
                 gotHit = true;
 
-            projectilePart.x += ((RADIUS+gameSpeed)*Math.cos(projectilePart.angle))/10;
-            projectilePart.y += ((RADIUS+gameSpeed)*Math.sin(projectilePart.angle))/10;
+            // Moves the projectile
+            projectilePart.x += projectilePart.dx;
+            projectilePart.y += projectilePart.dy;
+
+            // Removes the projectile if "out of bounds"
             if(projectilePart.x > gameCanvas.width || projectilePart.x < 0 || projectilePart.y > gameCanvas.height || projectilePart.y < 0)
                 projectiles.splice(projectiles.indexOf(projectilePart), 1);
 
+            // Draws the projectile
             else {
                 ctx.beginPath();
                 ctx.fillStyle = PROJECTILE_COLOUR;
@@ -190,75 +241,124 @@
             }
         }
 
+
+        // Moves the Hero :^)
         function moveHero() {
-            if(touchingCircles())
+            
+            if(touchingCircles())           // Returns a Boolean, if you're going into a BlueBall (circle), you can't
                 return;
-            else {
+            
+            else {                          // Valid movement
                 if(leftPressed && hero[0].x > 9)
                     hero[0].x = hero[0].x - 4;
-                else if(rightPressed && hero[0].x < gameCanvas.width - 12)
+                else if(rightPressed && hero[0].x < gameCanvas.width - 9)
                     hero[0].x = hero[0].x + 4;
                 if(upPressed && hero[0].y > 9)
                     hero[0].y = hero[0].y - 4;
-                else if(downPressed && hero[0].y < gameCanvas.height - 12)
+                else if(downPressed && hero[0].y < gameCanvas.height - 9)
                     hero[0].y = hero[0].y + 4;
             }
         }
 
+
+        // If the Hero is touching a BlueBall (circles) he gets "knocked" a bit away
         function touchingCircles() {
+            
             let a = hero[0].x;
             let b = hero[0].y;
+            
             for(var n = 0; n < circles.length; n++) {
+                
                 let circ = circles[n];
-                if(Math.sqrt((circ.x-a)*(circ.x-a) + (circ.y-b)*(circ.y-b)) < circ.r+5) {
+                // This simple calculation means "Are you inside this circle?"
+                if(Math.sqrt((circ.x-a)*(circ.x-a) + (circ.y-b)*(circ.y-b)) < circ.r+5) {   
+                    
                     if(a < circ.x)
                         hero[0].x = hero[0].x - 1;
                     else if (a > circ.x)
                         hero[0].x = hero[0].x + 1;
+                    
                     if(b < circ.y)
                         hero[0].y = hero[0].y - 1;
                     else if (b > circ.y)
                         hero[0].y = hero[0].y + 1;
+                    
                     return true;
                 }
             }
+            
             return false;
         }
 
-        function createCircle() {
-            if(circles.length < 5 && counter > 59) {
+
+        // Creates a BlueBall (circles)
+        function createCircle() { 
+
+            if(circles.length < 5 && counter >= 59) {               // No more than 5 because of REASONZ
                 counter = 0;
-                let tmpX = Math.random()*(gameCanvas.width-19);
-                let tmpY = Math.random()*(gameCanvas.height-19);
-                if(tmpX < 37) tmpX += 19;
-                if(tmpY < 37) tmpY += 19;
+                let tmpX = Math.random()*(gameCanvas.width-37);
+                let tmpY = Math.random()*(gameCanvas.height-37);
+                if(tmpX < 37) tmpX += 37;                           // All of this is just to prevent "out of bounds"
+                if(tmpY < 37) tmpY += 37;                           // on the hero, which would make you invincible
                 circles.push( {x: tmpX, y: tmpY, r: 3});
             }
+            
             else
                 counter += 1 % 60;
         }
 
+
+        // Can you see how lazy I am? Both create and draw in the same function huehue
         function drawCircles(){
             createCircle();
             circles.forEach(drawCircle);
         }
 
+        
+        // Simply draws the circle, called by drawCircles()
         function drawCircle(circlePart) {
-            if(circlePart.r < 18) {
+            
+            if(circlePart.r < 18) {             // "18" is simply the maximum range, I'm lazy and I won't put a constant
                 circlePart.r += 0.1;
                 ctx.fillStyle = CIRCLE_COLOUR;
             }
+            
             else 
-                ctx.fillStyle = "royalblue";
+                ctx.fillStyle = "royalblue";            // Easter Egg for whoever knows me AHAHAH
     
+            // Draws the BlueBall (circles)
             ctx.beginPath();
             ctx.arc(circlePart.x, circlePart.y, circlePart.r, 0, Math.PI*2);
             ctx.fill();
             ctx.stroke();
             ctx.closePath();
         }
+        
+
+        // If clicking, calls hitTest with pointer's relatives coordinates
+        function mouseClickHandler(e) {
+            hitTest(e.x - gameCanvas.offsetLeft, e.y - gameCanvas.offsetTop);
+        }
 
 
+        // If the click is inside any BlueBall (circles)..
+        function hitTest(ex, ey) {
+            
+            for(var n = 0; n < circles.length; n++) { 
+                
+                let xc = circles[n].x;
+                let yc = circles[n].y;
+                
+                if(Math.sqrt((xc-ex)*(xc-ex) + (yc-ey)*(yc-ey)) < circles[n].r) {
+                    counter = 0;                                // reset the counter for smoothness
+                    score += Math.floor(10000/circles[n].r);    // get points for hitting the circle
+                    circles.splice(n,1);                        // remove the circle
+                }
+            }
+        }
+
+        
+        // Key Handler (Down)
         function keyDownHandler(e) {
             if(e.keyCode == 65) 
                 leftPressed = true;
@@ -270,6 +370,8 @@
                 downPressed = true;
         }
         
+
+        // Key Handler (Up)
         function keyUpHandler(e) {
             if(e.keyCode == 65) 
                 leftPressed = false;
@@ -281,30 +383,20 @@
                 downPressed = false;
         }
 
-        function mouseClickHandler(e) {
-            hitTest(e.x - gameCanvas.offsetLeft, e.y - gameCanvas.offsetTop);
+        
+        // Simple random
+        function randomTen(min, max) {
+            return Math.round((Math.random() * (max-min) + min) / 10) * 10;
         }
 
-        function hitTest(ex, ey) {
-            for(var n = 0; n < circles.length; n++) { 
-                let xc = circles[n].x;
-                let yc = circles[n].y;
-                if(Math.sqrt((xc-ex)*(xc-ex) + (yc-ey)*(yc-ey)) < circles[n].r) {
-                    counter = 0;
-                    score += Math.floor(10000/circles[n].r);
-                    circles.splice(n,1);
-                }
-            }
-        }
-
-        function stop() {
-            restart = false;
-        }
-
+        
+        // Updates the highest score (this run), if needed
         function updateHighest() {
             let tmp = highest.innerHTML;
             if(tmp < score)
                 highest.innerHTML = score; 
         }
+
     </script>
+
 </html>
