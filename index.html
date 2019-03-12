@@ -245,19 +245,18 @@
         // Moves the Hero :^)
         function moveHero() {
             
-            if(touchingCircles())           // Returns a Boolean, if you're going into a BlueBall (circle), you can't
-                return;
-            
-            else {                          // Valid movement
-                if(leftPressed && hero[0].x > 9)
-                    hero[0].x = hero[0].x - 4;
-                else if(rightPressed && hero[0].x < gameCanvas.width - 9)
-                    hero[0].x = hero[0].x + 4;
-                if(upPressed && hero[0].y > 9)
-                    hero[0].y = hero[0].y - 4;
-                else if(downPressed && hero[0].y < gameCanvas.height - 9)
-                    hero[0].y = hero[0].y + 4;
-            }
+            touchingCircles();
+
+            if(leftPressed && hero[0].x > 9)
+                hero[0].x = hero[0].x - 4;
+            else if(rightPressed && hero[0].x < gameCanvas.width - 9)
+                hero[0].x = hero[0].x + 4;
+            if(upPressed && hero[0].y > 9)
+                hero[0].y = hero[0].y - 4;
+            else if(downPressed && hero[0].y < gameCanvas.height - 9)
+                hero[0].y = hero[0].y + 4;
+
+            touchingCircles();
         }
 
 
@@ -270,18 +269,19 @@
             for(var n = 0; n < circles.length; n++) {
                 
                 let circ = circles[n];
+                let dist = Math.sqrt((circ.x-a)*(circ.x-a) + (circ.y-b)*(circ.y-b)) -circ.r -5;
                 // This simple calculation means "Are you inside this circle?"
-                if(Math.sqrt((circ.x-a)*(circ.x-a) + (circ.y-b)*(circ.y-b)) < circ.r+5) {   
+                if(dist < 0) {   
                     
                     if(a < circ.x)
-                        hero[0].x = hero[0].x - 1;
+                        hero[0].x = hero[0].x - Math.abs(dist);
                     else if (a > circ.x)
-                        hero[0].x = hero[0].x + 1;
+                        hero[0].x = hero[0].x + Math.abs(dist);
                     
                     if(b < circ.y)
-                        hero[0].y = hero[0].y - 1;
+                        hero[0].y = hero[0].y - Math.abs(dist);
                     else if (b > circ.y)
-                        hero[0].y = hero[0].y + 1;
+                        hero[0].y = hero[0].y + Math.abs(dist);
                     
                     return true;
                 }
